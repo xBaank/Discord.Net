@@ -8,10 +8,17 @@ public partial class AudioClient
     private readonly AsyncEvent<Func<Task>> _connectedEvent = new();
     private readonly AsyncEvent<Func<Exception, Task>> _disconnectedEvent = new();
     private readonly AsyncEvent<Func<int, int, Task>> _latencyUpdatedEvent = new();
+    private readonly AsyncEvent<Func<IUser, IVoiceChannel, IVoiceChannel, Task>> _onVoiceChannelChanging = new();
     private readonly AsyncEvent<Func<ulong, bool, Task>> _speakingUpdatedEvent = new();
     private readonly AsyncEvent<Func<ulong, AudioInStream, Task>> _streamCreatedEvent = new();
     private readonly AsyncEvent<Func<ulong, Task>> _streamDestroyedEvent = new();
     private readonly AsyncEvent<Func<int, int, Task>> _udpLatencyUpdatedEvent = new();
+
+    public event Func<IUser, IVoiceChannel, IVoiceChannel, Task> OnVoiceChannelChanging
+    {
+        add => _onVoiceChannelChanging.Add(value);
+        remove => _onVoiceChannelChanging.Remove(value);
+    }
 
     public event Func<Task> Connected
     {
