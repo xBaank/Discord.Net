@@ -26,6 +26,7 @@ namespace Discord.Audio
 
         Task StopAsync();
         Task SetSpeakingAsync(bool value);
+        void IsChangingChannel(Func<Task> afterChannelChanged);
 
         /// <summary>Creates a new outgoing stream accepting Opus-encoded data.</summary>
         AudioOutStream CreateOpusStream(int bufferMillis = 1000);
