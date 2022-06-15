@@ -1853,7 +1853,7 @@ public class SocketGuild : SocketEntity<ulong>, IGuild, IDisposable
     internal async Task FinishConnectAudio(string url, string token)
     {
         //TODO: Mem Leak: Disconnected/Connected handlers aren't cleaned up
-        var voiceState = GetVoiceState(Discord.CurrentUser.Id).Value;
+        var voiceState = GetVoiceState(Discord.CurrentUser.Id) ?? throw new Exception("Voice state not found");
 
         await _audioLock.WaitAsync().ConfigureAwait(false);
         try

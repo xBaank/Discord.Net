@@ -184,7 +184,7 @@ internal class ConnectionManager : IDisposable
         State = ConnectionState.Disconnecting;
         await _logger.InfoAsync("Disconnecting").ConfigureAwait(false);
 
-        if(!isReconnecting)
+        if (!isReconnecting)
             await _onDisconnecting(ex).ConfigureAwait(false);
 
         await _disconnectedEvent.InvokeAsync(ex, isReconnecting).ConfigureAwait(false);

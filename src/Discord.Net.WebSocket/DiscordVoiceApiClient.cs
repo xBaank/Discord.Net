@@ -2,6 +2,7 @@ namespace Discord.Audio;
 
 using API;
 using API.Voice;
+using Net;
 using Net.Converters;
 using Net.Udp;
 using Net.WebSockets;
@@ -133,6 +134,9 @@ public class DiscordVoiceAPIClient : IDisposable
         };
         WebSocketClient.Closed += async ex =>
         {
+            /*var ex2 = ex as WebSocketClosedException;
+
+            if (ex2?.CloseCode == 4006) return;*/
             //await DisconnectAsync().ConfigureAwait(false);
             await _disconnectedEvent.InvokeAsync(ex).ConfigureAwait(false);
         };

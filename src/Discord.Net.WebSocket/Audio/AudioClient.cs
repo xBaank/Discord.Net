@@ -2,6 +2,7 @@ namespace Discord.Audio;
 
 using API.Voice;
 using Logging;
+using Net;
 using Net.Converters;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -142,8 +143,12 @@ public partial class AudioClient : IAudioClient
 
     private async Task UserVoiceStateUpdated(IUser arg1, SocketVoiceState arg2, SocketVoiceState arg3)
     {
-        if (arg1.Id != Discord.CurrentUser.Id || arg2.VoiceChannel?.Id == arg3.VoiceChannel?.Id || _connection.State == ConnectionState.Disconnected)
+        if (arg1.Id != Discord.CurrentUser.Id || arg2.VoiceChannel?.Id == arg3.VoiceChannel?.Id)
             return;
+
+        if (_isChangingChannel) return;
+
+        var _ = Discord.ApiClient.SendVoiceStateUpdateAsync(Guild.Id, ChannelId, false, false);
 
         _isChangingChannel = true;
         await _onVoiceChannelChanging.InvokeAsync(arg1, arg2.VoiceChannel, arg3.VoiceChannel);
@@ -166,11 +171,13 @@ public partial class AudioClient : IAudioClient
         await _audioLogger.DebugAsync("Sending Identity").ConfigureAwait(false);
         await ApiClient.SendIdentityAsync(_userId, _sessionId, _token).ConfigureAwait(false);
 
+
         //Wait for READY
         await _connection.WaitAsync().ConfigureAwait(false);
 
         if (AfterChannelChanged is not null && _isChangingChannel)
             await AfterChannelChanged();
+
 
         _isChangingChannel = false;
     }
@@ -178,6 +185,9 @@ public partial class AudioClient : IAudioClient
     private async Task OnDisconnectingAsync(Exception ex)
     {
         await _audioLogger.DebugAsync("Disconnecting ApiClient").ConfigureAwait(false);
+
+        var socketException = ex as WebSocketClosedException;
+
         await ApiClient.DisconnectAsync(_isChangingChannel).ConfigureAwait(false);
 
         //Wait for tasks to complete
