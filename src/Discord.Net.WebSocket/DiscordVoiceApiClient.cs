@@ -236,25 +236,23 @@ public class DiscordVoiceAPIClient : IDisposable
     {
         if (ConnectionState == ConnectionState.Disconnected)
             return;
+
+        ConnectionState = ConnectionState.Disconnecting;
+        try
         {
-            if (ConnectionState == ConnectionState.Disconnected)
-                return;
-            ConnectionState = ConnectionState.Disconnecting;
-
-            try
-            {
-                _connectCancelToken?.Cancel(false);
-            }
-            catch { }
-
-            //Wait for tasks to complete
-            await _udp.StopAsync().ConfigureAwait(false);
-            if (!isChangingChannel)
-            {
-                await WebSocketClient.DisconnectAsync().ConfigureAwait(false);
-                ConnectionState = ConnectionState.Disconnected;
-            }
+            _connectCancelToken?.Cancel(false);
         }
+        catch { }
+
+        //Wait for tasks to complete
+
+        await _udp.StopAsync().ConfigureAwait(false);
+
+        if (isChangingChannel)
+            return;
+
+        await WebSocketClient.DisconnectAsync().ConfigureAwait(false);
+        ConnectionState = ConnectionState.Disconnected;
     }
 
     #endregion

@@ -70,8 +70,8 @@ internal class ConnectionManager : IDisposable
 
     public virtual async Task StartAsync()
     {
-        if (State != ConnectionState.Disconnected)
-            throw new InvalidOperationException("Cannot start an already running client.");
+        /*if (State != ConnectionState.Disconnected)
+            throw new InvalidOperationException("Cannot start an already running client.");*/
 
         await AcquireConnectionLock().ConfigureAwait(false);
         var reconnectCancelToken = new CancellationTokenSource();
@@ -180,10 +180,12 @@ internal class ConnectionManager : IDisposable
     private async Task DisconnectAsync(Exception ex, bool isReconnecting)
     {
         if (State == ConnectionState.Disconnected) return;
+
         State = ConnectionState.Disconnecting;
         await _logger.InfoAsync("Disconnecting").ConfigureAwait(false);
 
-        await _onDisconnecting(ex).ConfigureAwait(false);
+        if(!isReconnecting)
+            await _onDisconnecting(ex).ConfigureAwait(false);
 
         await _disconnectedEvent.InvokeAsync(ex, isReconnecting).ConfigureAwait(false);
         State = ConnectionState.Disconnected;

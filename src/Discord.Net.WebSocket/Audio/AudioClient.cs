@@ -19,13 +19,13 @@ using WebSocket;
 public partial class AudioClient : IAudioClient
 {
     private readonly Logger _audioLogger;
+    private readonly ConnectionManager _connection;
     private readonly ConcurrentQueue<long> _heartbeatTimes;
     private readonly ConcurrentQueue<KeyValuePair<ulong, int>> _keepaliveTimes;
     private readonly JsonSerializer _serializer;
     private readonly ConcurrentDictionary<uint, ulong> _ssrcMap;
     private readonly SemaphoreSlim _stateLock;
     private readonly ConcurrentDictionary<ulong, StreamPair> _streams;
-    private ConnectionManager _connection;
 
     private Task _heartbeatTask, _keepaliveTask;
 
@@ -140,13 +140,13 @@ public partial class AudioClient : IAudioClient
     public void Dispose() => Dispose(true);
 
 
-    private Task UserVoiceStateUpdated(IUser arg1, SocketVoiceState arg2, SocketVoiceState arg3)
+    private async Task UserVoiceStateUpdated(IUser arg1, SocketVoiceState arg2, SocketVoiceState arg3)
     {
         if (arg1.Id != Discord.CurrentUser.Id || arg2.VoiceChannel?.Id == arg3.VoiceChannel?.Id || _connection.State == ConnectionState.Disconnected)
-            return Task.CompletedTask;
+            return;
 
         _isChangingChannel = true;
-        return Task.CompletedTask;
+        await _onVoiceChannelChanging.InvokeAsync(arg1, arg2.VoiceChannel, arg3.VoiceChannel);
     }
 
     internal async Task StartAsync(string url, ulong userId, string sessionId, string token)
@@ -155,16 +155,7 @@ public partial class AudioClient : IAudioClient
         _userId = userId;
         _sessionId = sessionId;
         _token = token;
-        if (!_isChangingChannel)
-            await _connection.StartAsync().ConfigureAwait(false);
-        else
-        {
-            _connection = new ConnectionManager(_stateLock, _audioLogger, 30000,
-                OnConnectingAsync, OnDisconnectingAsync, x => ApiClient.Disconnected += x);
-            _connection.Connected += () => _connectedEvent.InvokeAsync();
-            _connection.Disconnected += (ex, _) => _disconnectedEvent.InvokeAsync(ex);
-            await _connection.StartAsync().ConfigureAwait(false);
-        }
+        await _connection.StartAsync().ConfigureAwait(false);
     }
 
     private async Task OnConnectingAsync()
@@ -178,8 +169,10 @@ public partial class AudioClient : IAudioClient
         //Wait for READY
         await _connection.WaitAsync().ConfigureAwait(false);
 
-        if (AfterChannelChanged is not null && !_isChangingChannel)
+        if (AfterChannelChanged is not null && _isChangingChannel)
             await AfterChannelChanged();
+
+        _isChangingChannel = false;
     }
 
     private async Task OnDisconnectingAsync(Exception ex)
@@ -207,7 +200,7 @@ public partial class AudioClient : IAudioClient
         if (!_isChangingChannel)
             await Discord.ApiClient.SendVoiceStateUpdateAsync(Guild.Id, null, false, false).ConfigureAwait(false);
         else
-            _isChangingChannel = false;
+            await Discord.ApiClient.SendVoiceStateUpdateAsync(Guild.Id, ChannelId, false, false).ConfigureAwait(false);
     }
 
     internal async Task CreateInputStreamAsync(ulong userId)
