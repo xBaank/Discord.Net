@@ -2227,10 +2227,6 @@ namespace Discord.WebSocket
                                     await _gatewayLogger.DebugAsync("Received Dispatch (VOICE_SERVER_UPDATE)").ConfigureAwait(false);
 
                                     var data = (payload as JToken).ToObject<VoiceServerUpdateEvent>(_serializer);
-
-                                    if(data is null)
-                                        throw  new Exception($"data is null {payload.ToString()}");
-
                                     var guild = State.GetGuild(data.GuildId);
                                     var isCached = guild != null;
                                     var cachedGuild = new Cacheable<IGuild, ulong>(guild, data.GuildId, isCached,
